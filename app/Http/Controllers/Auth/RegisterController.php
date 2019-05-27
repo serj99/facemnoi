@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\User;
+use App\InNeedUser;
+use App\ToDoUser;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Http\Request;
 
 class RegisterController extends Controller
 {
@@ -27,7 +30,7 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    //protected $redirectTo = '/home';
 
     /**
      * Create a new controller instance.
@@ -37,6 +40,8 @@ class RegisterController extends Controller
     public function __construct()
     {
         $this->middleware('guest');
+        $this->middleware('guest:in_need_user')->except('logout');
+        $this->middleware('guest:to_do_user')->except('logout');
     }
 
     /**
@@ -48,9 +53,10 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'name' => ['required', 'string', 'max:255'],
+            'mobile_phone' => ['required', 'string', 'min:8'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:in_need_users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
     }
 
@@ -60,12 +66,41 @@ class RegisterController extends Controller
      * @param  array  $data
      * @return \App\User
      */
-    protected function create(array $data)
+    protected function createInNeedUser(Request $request)
     {
-        return User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => bcrypt($data['password']),
-        ]);
+      $this->validator($request->all())->validate();
+      
+      $in_need_user = InNeedUser::create([
+            'name' => $request['name'],
+            'email' => $request['email'],
+            'password' => Hash::make($request['password']),
+            'phone_number' => $request['mobile_phone'],
+          ]);
+      return redirect()->intended('login/in_need_user');
     }
+
+    protected function createToDoUser(Request $request)
+    {
+      $this->validator($request->all())->validate();
+      
+      $to_do_user = ToDoUser::create([
+            'name' => $request['nametd'],
+            'email' => $request['emailtd'],
+            'password' => Hash::make($request['passwordtd']),
+            'mobile_phone' => $request['mobile_phonetd'],
+          ]);
+      return redirect()->intended('login/to_do_user');
+    }
+   
+    public function showRegisterForm()
+    {
+        return view('auth.register');
+    }
+
+    /*
+    public function showToDoUserRegisterForm()
+    {
+        return view('auth.register');
+    }
+    */
 }
